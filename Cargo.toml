@@ -7,6 +7,14 @@ repository = "https://github.com/caido/bumpit"
 license = "MIT"
 edition = "2024"
 
+[[bin]]
+name = "bumpit"
+path = "src/bin/bumpit.rs"
+
+[[bin]]
+name = "cargo-bumpit"
+path = "src/bin/cargo-bumpit.rs"
+
 [dependencies]
 anyhow = "1.0.98"
 cargo_metadata = "0.20.0"

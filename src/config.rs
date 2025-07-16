@@ -9,12 +9,8 @@ use crate::modifier::{BumpKind, VersionModifier};
 #[derive(Parser, Debug)]
 #[clap(name = "Caido", about)]
 pub struct Arguments {
-    /// Required "bump" command when called through cargo
-    #[arg(index = 1, value_parser = ["bump"], required = true, hide = true)]
-    pub bump: String,
-
     /// Version should be a semver (https://semver.org/) string or the position of the current version to increment: premajor, major, preminor, minor, prepatch, patch, prerelease.
-    #[arg(index = 2)]
+    #[arg(index = 1)]
     pub version: BumpKind,
 
     /// Optional path to Cargo.toml
