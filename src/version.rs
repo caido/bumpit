@@ -30,3 +30,29 @@ impl VersionExt for Version {
         self.build = semver::BuildMetadata::EMPTY;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_increment_major() {
+        let mut version = Version::parse("0.1.0").unwrap();
+        version.increment_major();
+        assert_eq!(version, Version::parse("1.0.0").unwrap());
+    }
+
+    #[test]
+    fn test_increment_minor() {
+        let mut version = Version::parse("0.1.0").unwrap();
+        version.increment_minor();
+        assert_eq!(version, Version::parse("0.2.0").unwrap());
+    }
+
+    #[test]
+    fn test_increment_patch() {
+        let mut version = Version::parse("0.1.0").unwrap();
+        version.increment_patch();
+        assert_eq!(version, Version::parse("0.1.1").unwrap());
+    }
+}
