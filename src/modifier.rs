@@ -87,7 +87,12 @@ impl VersionModifier {
                     version.increment_patch();
                 }
                 let (pre_id, numeric) = parse_prerelease(&version.pre)?;
-                version.pre = build_prerelease(Some(&pre_id), numeric.map(|n| n + 1).unwrap_or(0))?;
+                if pre_id == self.pre_id {
+                    version.pre =
+                        build_prerelease(pre_id.as_deref(), numeric.map(|n| n + 1).unwrap_or(0))?;
+                } else {
+                    version.pre = build_prerelease(self.pre_id.as_deref(), 0)?;
+                }
             }
         }
         Ok(())
@@ -103,13 +108,151 @@ fn build_prerelease(pre_id: Option<&str>, numeric: u64) -> anyhow::Result<semver
     semver::Prerelease::new(&raw).context("Invalid prerelease identifier")
 }
 
-fn parse_prerelease(pre: &semver::Prerelease) -> anyhow::Result<(String, Option<u64>)> {
+fn parse_prerelease(pre: &semver::Prerelease) -> anyhow::Result<(Option<String>, Option<u64>)> {
     if let Some((pre_id, numeric)) = pre.as_str().split_once('.') {
         let pre_id = pre_id.to_owned();
         let numeric = u64::from_str(numeric)
                 .map_err(|_| anyhow::anyhow!("This version scheme is not supported. Use format like `pre`, `dev` or `alpha.1` for prerelease symbol"))?;
-        Ok((pre_id, Some(numeric)))
+        Ok((Some(pre_id), Some(numeric)))
+    } else if let Ok(numeric) = pre.as_str().parse::<u64>() {
+        Ok((None, Some(numeric)))
+    } else if !pre.as_str().is_empty() {
+        Ok((Some(pre.as_str().to_owned()), None))
     } else {
-        Ok((pre.as_str().to_owned(), None))
+        Ok((None, None))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_replace() {
+        let mut version = Version::parse("0.1.0").unwrap();
+        let modifier =
+            VersionModifier::new(BumpKind::Replace(Version::parse("0.2.0").unwrap()), None);
+        modifier.apply(&mut version).unwrap();
+        assert_eq!(version, Version::parse("0.2.0").unwrap());
+    }
+
+    #[test]
+    fn test_premajor() {
+        let mut version = Version::parse("0.1.0").unwrap();
+        let modifier = VersionModifier::new(BumpKind::PreMajor, None);
+        modifier.apply(&mut version).unwrap();
+        assert_eq!(version, Version::parse("1.0.0-0").unwrap());
+    }
+
+    #[test]
+    fn test_major() {
+        let mut version = Version::parse("0.1.0").unwrap();
+        let modifier = VersionModifier::new(BumpKind::Major, None);
+        modifier.apply(&mut version).unwrap();
+        assert_eq!(version, Version::parse("1.0.0").unwrap());
+    }
+
+    #[test]
+    fn test_major_prereleased() {
+        let mut version = Version::parse("1.0.0-rc.0").unwrap();
+        let modifier = VersionModifier::new(BumpKind::Major, None);
+        modifier.apply(&mut version).unwrap();
+        assert_eq!(version, Version::parse("1.0.0").unwrap());
+    }
+
+    #[test]
+    fn test_preminor() {
+        let mut version = Version::parse("0.1.0").unwrap();
+        let modifier = VersionModifier::new(BumpKind::PreMinor, None);
+        modifier.apply(&mut version).unwrap();
+        assert_eq!(version, Version::parse("0.2.0-0").unwrap());
+    }
+
+    #[test]
+    fn test_minor() {
+        let mut version = Version::parse("0.1.0").unwrap();
+        let modifier = VersionModifier::new(BumpKind::Minor, None);
+        modifier.apply(&mut version).unwrap();
+        assert_eq!(version, Version::parse("0.2.0").unwrap());
+    }
+
+    #[test]
+    fn test_minor_prereleased() {
+        let mut version = Version::parse("0.1.0-rc.0").unwrap();
+        let modifier = VersionModifier::new(BumpKind::Minor, None);
+        modifier.apply(&mut version).unwrap();
+        assert_eq!(version, Version::parse("0.1.0").unwrap());
+    }
+
+    #[test]
+    fn test_prepatch() {
+        let mut version = Version::parse("0.1.0").unwrap();
+        let modifier = VersionModifier::new(BumpKind::PrePatch, None);
+        modifier.apply(&mut version).unwrap();
+        assert_eq!(version, Version::parse("0.1.1-0").unwrap());
+    }
+
+    #[test]
+    fn test_patch() {
+        let mut version = Version::parse("0.1.0").unwrap();
+        let modifier = VersionModifier::new(BumpKind::Patch, None);
+        modifier.apply(&mut version).unwrap();
+        assert_eq!(version, Version::parse("0.1.1").unwrap());
+    }
+
+    #[test]
+    fn test_patch_prereleased() {
+        let mut version = Version::parse("0.1.1-rc.0").unwrap();
+        let modifier = VersionModifier::new(BumpKind::Patch, None);
+        modifier.apply(&mut version).unwrap();
+        assert_eq!(version, Version::parse("0.1.1").unwrap());
+    }
+
+    #[test]
+    fn test_prerelease() {
+        let mut version = Version::parse("0.1.0").unwrap();
+        let modifier = VersionModifier::new(BumpKind::PreRelease, None);
+        modifier.apply(&mut version).unwrap();
+        assert_eq!(version, Version::parse("0.1.1-0").unwrap());
+    }
+
+    #[test]
+    fn test_prerelease_prereleased() {
+        let mut version = Version::parse("0.1.0-0").unwrap();
+        let modifier = VersionModifier::new(BumpKind::PreRelease, None);
+        modifier.apply(&mut version).unwrap();
+        assert_eq!(version, Version::parse("0.1.0-1").unwrap());
+    }
+
+    #[test]
+    fn test_prerelease_prereleased_restart() {
+        let mut version = Version::parse("0.1.0-1").unwrap();
+        let modifier = VersionModifier::new(BumpKind::PreRelease, Some("rc".to_owned()));
+        modifier.apply(&mut version).unwrap();
+        assert_eq!(version, Version::parse("0.1.0-rc.0").unwrap());
+    }
+
+    #[test]
+    fn test_prerelease_with_id() {
+        let mut version = Version::parse("0.1.0").unwrap();
+        let modifier = VersionModifier::new(BumpKind::PreRelease, Some("rc".to_owned()));
+        modifier.apply(&mut version).unwrap();
+        assert_eq!(version, Version::parse("0.1.1-rc.0").unwrap());
+    }
+
+    #[test]
+    fn test_prerelease_with_id_prereleased() {
+        let mut version = Version::parse("0.1.0-rc.0").unwrap();
+        let modifier = VersionModifier::new(BumpKind::PreRelease, Some("rc".to_owned()));
+        modifier.apply(&mut version).unwrap();
+        assert_eq!(version, Version::parse("0.1.0-rc.1").unwrap());
+    }
+
+    #[test]
+    fn test_prerelease_with_id_prereleased_restart() {
+        let mut version = Version::parse("0.1.0-alpha.1").unwrap();
+        let modifier = VersionModifier::new(BumpKind::PreRelease, Some("rc".to_owned()));
+        modifier.apply(&mut version).unwrap();
+        assert_eq!(version, Version::parse("0.1.0-rc.0").unwrap());
     }
 }
