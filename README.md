@@ -1,7 +1,7 @@
 # BumpIt
 
 [<img alt="github" src="https://img.shields.io/badge/github-caido/bumpit-8da0cb?style=for-the-badge&labelColor=555555&logo=github" height="20">](https://github.com/caido/bumpit)
-[<img alt="crates.io" src="https://img.shields.io/crates/v/async-buf-read?color=fc8d62&logo=rust&style=for-the-badge" height="20">](https://crates.io/crates/bumpit)
+[<img alt="crates.io" src="https://img.shields.io/crates/v/bumpit?color=fc8d62&logo=rust&style=for-the-badge" height="20">](https://crates.io/crates/bumpit)
 
 Mirrors the behaviour of [npm version](https://docs.npmjs.com/cli/v8/commands/npm-version) but for Rust.
 Supports individual packages and workspaces.
