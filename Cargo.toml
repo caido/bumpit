@@ -2,7 +2,7 @@
 name = "bumpit"
 version = "0.1.0"
 authors = ["Caido Labs Inc. <dev@caido.io>"]
-description = "Bump the version of projects"
+description = "Bump the version of packages"
 repository = "https://github.com/caido/bumpit"
 license = "MIT"
 edition = "2024"
