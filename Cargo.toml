@@ -1,0 +1,15 @@
+[package]
+name = "bumpit"
+version = "0.1.0"
+authors = ["Caido Labs Inc. <dev@caido.io>"]
+description = "Bump the version of projects"
+repository = "https://github.com/caido/bumpit"
+license = "MIT"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.98"
+cargo_metadata = "0.20.0"
+clap = { version = "4.5.41", features = ["derive"] }
+semver = "1.0.26"
+toml_edit = "0.23.1"
